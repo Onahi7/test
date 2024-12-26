@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Solana Distribution Portal - Check eligibility and connect your Phantom wallet">
+    <title>Solana Distribution Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/solana-web3.js/1.91.1/index.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #9945FF;
+            --secondary-color: #14F195;
+            --background-dark: #0F172A;
+            --text-light: #FFFFFF;
+            --text-muted: #94A3B8;
+            --nav-background: rgba(15, 23, 42, 0.95);
+            --error-color: #EF4444;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            padding-top: 70px;
+            line-height: 1.6;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--nav-background);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            transition: opacity 0.3s;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            transition: all 0.3s;
+            position: relative;
+            font-weight: 500;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--secondary-color);
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(153, 69, 255, 0.2);
+        }
+
+        .form-group .error {
+            color: var(--error-color);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .wallet-section {
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .wallet-button {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .wallet-button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .wallet-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .wallet-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 500;
+        }
+
+        .wallet-address {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            word-break: break-all;
+            margin-top: 0.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: none;
+            font-size: 0.875rem;
+        }
+
+        .connected {
+            color: var(--success-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .connected::before {
+            content: '✓';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: var(--success-color);
+            border-radius: 50%;
+            color: white;
+            line-height: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            background: var(--nav-background);
+            color: var(--text-light);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--secondary-color);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .nav-links.active {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--nav-background);
+                padding: 1rem;
+                gap: 1rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toast" class="toast"></div>
+    <nav>
+        <div class="nav-container">
+            <div class="logo">SolanaPortal</div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#eligibility">Eligibility</a>
+                <a href="#contact">Contact</a>
+            </div>
+            <button class="mobile-menu" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
+        </div>
+    </nav>
+
+    <div id="particles-js"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Solana Distribution Portal</h1>
+            <p>Connect your wallet and verify eligibility for token distribution</p>
+        </div>
+
+        <div class="form-container">
+            <div class="wallet-section">
+                <button id="connectWallet" class="wallet-button">Connect Phantom Wallet</button>
+                <div id="walletStatus" class="wallet-status">Please connect your Phantom wallet</div>
+                <div id="walletAddress" class="wallet-address"></div>
+            </div>
+
+            <form id="distributionForm" novalidate>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required minlength="2" maxlength="100" 
+                           pattern="^[a-zA-Z\s-']+$">
+                    <div class="error" id="nameError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required>
+                    <div class="error" id="emailError"></div>
+                </div>
+
+                <button type="submit" disabled id="submitButton" class="wallet-button">
+                    Submit Application
+                </button>
+                <div id="loading" class="loading">Processing your application...</div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Toast notification system
+        const showToast = (message, type = 'info') => {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            toast.style.backgroundColor = 
+                type === 'error' ? 'var(--error-color)' : 
+                type === 'success' ? 'var(--success-color)' : 
+                'var(--nav-background)';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        };
+
+        // Form validation
+        const validateForm = () => {
+            const name = document.getElementById('name');
+            const email = document.getElementById('email');
+            const nameError = document.getElementById('nameError');
+            const emailError = document.getElementById('emailError');
+            let isValid = true;
+
+            // Name validation
+            if (!name.value.trim()) {
+                nameError.textContent = 'Name is required';
+                isValid = false;
+            } else if (!name.value.match(/^[a-zA-Z\s-']+$/)) {
+                nameError.textContent = 'Name can only contain letters, spaces, hyphens, and apostrophes';
+                isValid = false;
+            } else if (name.value.length < 2) {
+                nameError.textContent = 'Name must be at least 2 characters long';
+                isValid = false;
+            } else {
+                nameError.textContent = '';
+            }
+
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.value.trim()) {
+                emailError.textContent = 'Email is required';
+                isValid = false;
+            } else if (!emailRegex.test(email.value)) {
+                emailError.textContent = 'Please enter a valid email address';
+                isValid = false;
+            } else {
+                emailError.textContent = '';
+            }
+
+            return isValid;
+        };
+
+        // Initialize particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 50, density: { enable: true, value_area: 800 } },
+                color: { value: '#9945FF' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.5, random: false },
+                size: { value: 3, random: true },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: '#14F195',
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'repulse' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                },
+                modes: {
+                    repulse: { distance: 100, duration: 0.4 },
+                    push: { particles_nb: 4 }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Wallet Integration with error handling and retry mechanism
+        let walletAddress = null;
+        let retryAttempts = 0;
+        const MAX_RETRY_ATTEMPTS = 3;
+
+        const checkPhantomWallet = async () => {
+            try {
+                if (typeof window.phantom?.solana === 'undefined') {
+                    if (retryAttempts < MAX_RETRY_ATTEMPTS) {
+                        retryAttempts++;
+                        showToast('Checking for Phantom wallet...', 'info');
+                        setTimeout(checkPhantomWallet, 1000);
+                        return false;
+                    }
+                    showToast('Please install Phantom wallet', 'error');
+                    document.getElementById('walletStatus').textContent = 
+                        'Phantom wallet is not installed. Please install it from phantom.app';
+                    document.getElementById('connectWallet').disabled = true;
+                    return false;
+                }
+                retryAttempts = 0;
+                return true;
+            } catch (err) {
+                console.error('Wallet check error:', err);
+                showToast('Error checking wallet status', 'error');
+                return false;
+            }
+        };
+
+        const connectWallet = async () => {
+            try {
+                const isPhantomAvailable = await checkPhantomWallet();
+                if (!isPhantomAvailable) return;
+
+                // Request wallet connection
+                const resp = await window.phantom?.solana?.connect();
+                walletAddress = resp.publicKey.toString();
+                
+                // Update UI elements
+                document.getElementById('walletStatus').innerHTML = 
+                    '<span class="connected">Wallet Connected</span>';
+                document.getElementById('walletAddress').style.display = 'block';
+                document.getElementById('walletAddress').textContent = 
+                    `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
+                document.getElementById('connectWallet').textContent = 'Connected';
+                document.getElementById('connectWallet').disabled = true;
+                document.getElementById('submitButton').disabled = false;
+
+                showToast('Wallet connected successfully', 'success');
+                
+                // Setup wallet change listeners
+                setupWalletListeners();
+                
+            } catch (err) {
+                console.error('Wallet connection error:', err);
+                showToast(err.message || 'Error connecting wallet', 'error');
+                document.getElementById('walletStatus').textContent = 
+                    'Failed to connect wallet. Please try again.';
+            }
+        };
+
+        const setupWalletListeners = () => {
+            if (!window.phantom?.solana) return;
+
+            window.phantom.solana.on('disconnect', disconnectWallet);
+            window.phantom.solana.on('accountChanged', handleAccountChange);
+        };
+
+        const handleAccountChange = (newPublicKey) => {
+            if (newPublicKey) {
+                walletAddress = newPublicKey.toString();
+                document.getElementById('walletAddress').textContent = 
+                    `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
+                showToast('Wallet account changed', 'info');
+            } else {
+                disconnectWallet();
+            }
+        };
+
+        const disconnectWallet = () => {
+            walletAddress = null;
+            document.getElementById('walletStatus').textContent = 'Wallet disconnected';
+            document.getElementById('walletAddress').style.display = 'none';
+            document.getElementById('connectWallet').textContent = 'Connect Phantom Wallet';
+            document.getElementById('connectWallet').disabled = false;
+            document.getElementById('submitButton').disabled = true;
+            showToast('Wallet disconnected', 'info');
+        };
+
+        // Get location with timeout and error handling
+        const getLocation = () => {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation is not supported by your browser'));
+                    return;
+                }
+
+                const timeout = setTimeout(() => {
+                    reject(new Error('Location request timed out'));
+                }, 10000);
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        clearTimeout(timeout);
+                        resolve(position);
+                    },
+                    (error) => {
+                        clearTimeout(timeout);
+                        reject(error);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        };
+
+        // Replace your form submission handler with this:
+document.getElementById('distributionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+        showToast('Please fix the form errors', 'error');
+        return;
+    }
+
+    if (!walletAddress) {
+        showToast('Please connect your Phantom wallet first', 'error');
+        return;
+    }
+
+    const loading = document.getElementById('loading');
+    loading.style.display = 'flex';
+    document.getElementById('submitButton').disabled = true;
+
+    try {
+        const position = await getLocation();
+        
+        const formData = {
+            name: document.getElementById('name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            wallet: walletAddress,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString()
+        };
+
+        // Save the form data (using your preferred method)
+        const saveFormResponse = async (formData) => {
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyd-Vjp3SwIjlBS3VXTW0nqcqSAobv_r7eOyBjXaIG69ItzlQxYtH24wu63JezlRCc7/exec"; // Replace with your Web App URL
+    try {
+        const response = await fetch(scriptURL, {
+            method: 'POST',
+            mode: 'no-cors', // Important for cross-origin requests
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        // Direct redirect without setTimeout
+        const successUrl = new URL('success.html', window.location.href);
+        successUrl.searchParams.set('wallet', walletAddress);
+        window.location.href = successUrl.toString();
+        
+    } catch (error) {
+        console.error('Submission error:', error);
+        showToast(
+            error.message || 'Error submitting application. Please try again.',
+            'error'
+        );
+        document.getElementById('submitButton').disabled = false;
+        loading.style.display = 'none';
+    }
+});
+        // Mobile menu toggle
+        const toggleMenu = () => {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('active');
+        };
+
+        // Initialize wallet connection check on page load
+        window.addEventListener('load', async () => {
+            await checkPhantomWallet();
+            document.getElementById('connectWallet').addEventListener('click', connectWallet);
+            
+            // Setup form input validation
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', validateForm);
+                input.addEventListener('blur', validateForm);
+            });
+        });
+    </script>
+</body>
+</html>
